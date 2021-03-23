@@ -889,6 +889,10 @@ func (p *DockerProvider) GetGatewayIP(ctx context.Context) (string, error) {
 		return "", err
 	}
 
+	if len(oldip) != 0 {
+		return oldip, nil
+	}
+
 	// Use a default network as defined in the DockerProvider
 	log.Printf("GetGatewayIP: START %#v\n", ctx)
 	nw, err := p.GetNetwork(ctx, NetworkRequest{Name: p.defaultNetwork})
