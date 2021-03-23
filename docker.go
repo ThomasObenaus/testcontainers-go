@@ -489,13 +489,13 @@ func (p *DockerProvider) BuildImage(ctx context.Context, img ImageBuildInfo) (st
 // CreateContainer fulfills a request for a container without starting it
 func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerRequest) (Container, error) {
 	var err error
-
 	// Make sure that bridge network exists
 	// In case it is disabled we will create reaper_default network
 	p.defaultNetwork, err = getDefaultNetwork(ctx, p.client)
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("CreateContainer(START) p.defaultNetwork: %v, client:%#v\n", p.defaultNetwork, *p.client)
 
 	// If default network is not bridge make sure it is attached to the request
 	// as container won't be attached to it automatically
@@ -644,11 +644,13 @@ func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerReque
 	networkingConfig := network.NetworkingConfig{
 		EndpointsConfig: endpointConfigs,
 	}
+	log.Printf("p.client.ContainerCreate(START)\n->ctx: %#v\n->dockerInput: %#v\n->hostConfig: %#v\n->networkingConfig:%#v\n", ctx, dockerInput, hostConfig, networkingConfig)
 
 	resp, err := p.client.ContainerCreate(ctx, dockerInput, hostConfig, &networkingConfig, nil, req.Name)
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("p.client.ContainerCreate(DONE) resp: %#v\n", resp)
 
 	// #248: If there is more than one network specified in the request attach newly created container to them one by one
 	if len(req.Networks) > 1 {
@@ -678,6 +680,7 @@ func (p *DockerProvider) CreateContainer(ctx context.Context, req ContainerReque
 		skipReaper:        req.SkipReaper,
 		stopProducer:      make(chan bool),
 	}
+	log.Printf("DockerContainer: %#v\n", c)
 
 	return c, nil
 }
@@ -730,9 +733,12 @@ func (p *DockerProvider) RunContainer(ctx context.Context, req ContainerRequest)
 		return nil, err
 	}
 
+	log.Printf("RunContainer(START)\n->c: %v\n->ctx:%#v\n", c, ctx)
 	if err := c.Start(ctx); err != nil {
+		log.Printf("RunContainer(ERROR)\n->c: %v\n", err)
 		return c, errors.Wrap(err, "could not start container")
 	}
+	log.Printf("RunContainer(DONE)\n->c: %v\n->ctx:%#v\n", c, ctx)
 
 	return c, nil
 }
