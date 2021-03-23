@@ -889,10 +889,6 @@ func (p *DockerProvider) GetGatewayIP(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	if len(oldip) != 0 {
-		return oldip, nil
-	}
-
 	// Use a default network as defined in the DockerProvider
 	log.Printf("GetGatewayIP: START %#v\n", ctx)
 	nw, err := p.GetNetwork(ctx, NetworkRequest{Name: p.defaultNetwork})
@@ -901,19 +897,28 @@ func (p *DockerProvider) GetGatewayIP(ctx context.Context) (string, error) {
 		return "", err
 	}
 
-	var ip string
 	for _, config := range nw.IPAM.Config {
 		log.Printf("GetGatewayIP: loop %#v\n", config)
 		if config.Gateway != "" {
-			ip = config.Gateway
-			break
+			log.Printf("GetGatewayIP: loop %#v\n", config.Gateway)
 		}
 	}
-	if ip == "" {
-		return "", errors.New("Failed to get gateway IP from network settings")
-	}
 
-	return ip, nil
+	return oldip, nil
+	/*
+		var ip string
+		for _, config := range nw.IPAM.Config {
+			log.Printf("GetGatewayIP: loop %#v\n", config)
+			if config.Gateway != "" {
+				ip = config.Gateway
+				break
+			}
+		}
+		if ip == "" {
+			return "", errors.New("Failed to get gateway IP from network settings")
+		}
+
+		return ip, nil*/
 }
 
 func inAContainer() bool {
