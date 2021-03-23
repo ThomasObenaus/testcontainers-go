@@ -3,6 +3,7 @@ package wait
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -30,6 +31,7 @@ func ForAll(strategies ...Strategy) *MultiStrategy {
 }
 
 func (ms *MultiStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) (err error) {
+	log.Printf("WaitUntilReady(MULTI)")
 	ctx, cancelContext := context.WithTimeout(ctx, ms.startupTimeout)
 	defer cancelContext()
 

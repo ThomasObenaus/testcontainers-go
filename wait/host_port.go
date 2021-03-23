@@ -3,6 +3,7 @@ package wait
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strconv"
@@ -47,6 +48,8 @@ func (hp *HostPortStrategy) WithStartupTimeout(startupTimeout time.Duration) *Ho
 
 // WaitUntilReady implements Strategy.WaitUntilReady
 func (hp *HostPortStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) (err error) {
+	log.Printf("WaitUntilReady(HostPortStrategy)")
+
 	// limit context to startupTimeout
 	ctx, cancelContext := context.WithTimeout(ctx, hp.startupTimeout)
 	defer cancelContext()
