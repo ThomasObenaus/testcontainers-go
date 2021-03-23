@@ -883,8 +883,8 @@ func getGatewayIpOld() (string, error) {
 
 func (p *DockerProvider) GetGatewayIP(ctx context.Context) (string, error) {
 
-	ip, err := getGatewayIpOld()
-	log.Printf("GetGatewayIP: getGatewayIpOld %#v - %v\n", ip, err)
+	oldip, err := getGatewayIpOld()
+	log.Printf("GetGatewayIP: getGatewayIpOld %#v - %v\n", oldip, err)
 	if err != nil {
 		return "", err
 	}
