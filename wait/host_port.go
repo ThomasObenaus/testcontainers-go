@@ -48,20 +48,20 @@ func (hp *HostPortStrategy) WithStartupTimeout(startupTimeout time.Duration) *Ho
 
 // WaitUntilReady implements Strategy.WaitUntilReady
 func (hp *HostPortStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) (err error) {
-	log.Printf("WaitUntilReady(HostPortStrategy) ctx %#v, target %#v\n", ctx, target)
+	log.Printf("WaitUntilReady: (HostPortStrategy) ctx %#v, target %#v\n", ctx, target)
 
 	// limit context to startupTimeout
 	ctx, cancelContext := context.WithTimeout(ctx, hp.startupTimeout)
 	defer cancelContext()
 
 	ipAddress, err := target.Host(ctx)
-	log.Printf("target.Host(ctx) ipAddress %#v - %v\n", ipAddress, err)
+	log.Printf("WaitUntilReady: target.Host(ctx) ipAddress %#v - %v\n", ipAddress, err)
 	if err != nil {
 		return
 	}
 
 	port, err := target.MappedPort(ctx, hp.Port)
-	log.Printf("target.Host(ctx) port %#v hp.Port %#v - %v\n", port, hp.Port, err)
+	log.Printf("WaitUntilReady: target.Host(ctx) port %#v hp.Port %#v - %v\n", port, hp.Port, err)
 	if err != nil {
 		return
 	}
@@ -73,15 +73,15 @@ func (hp *HostPortStrategy) WaitUntilReady(ctx context.Context, target StrategyT
 	//external check
 	dialer := net.Dialer{}
 	address := net.JoinHostPort(ipAddress, portString)
-	log.Printf("net.JoinHostPort address: %#v proto: %#v\n", address, proto)
+	log.Printf("WaitUntilReady: net.JoinHostPort address: %#v proto: %#v\n", address, proto)
 	for {
 		conn, err := dialer.DialContext(ctx, proto, address)
-		log.Printf("dialer.DialContext err: %#v\n", err)
+		log.Printf("WaitUntilReady: dialer.DialContext err: %#v\n", err)
 		if err != nil {
 			if v, ok := err.(*net.OpError); ok {
 				if v2, ok := (v.Err).(*os.SyscallError); ok {
 					if isConnRefusedErr(v2.Err) {
-						log.Printf("RETRY\n", err)
+						log.Printf("WaitUntilReady: RETRY %v %#v\n", err, v2)
 						time.Sleep(100 * time.Millisecond)
 						continue
 					}
@@ -95,27 +95,27 @@ func (hp *HostPortStrategy) WaitUntilReady(ctx context.Context, target StrategyT
 	}
 
 	//internal check
-	log.Printf("A\n", err)
+	log.Printf("WaitUntilReady: A\n", err)
 	command := buildInternalCheckCommand(hp.Port.Int())
-	log.Printf("B\n", err)
+	log.Printf("WaitUntilReady: B\n", err)
 	for {
-		log.Printf("C\n", err)
+		log.Printf("WaitUntilReady: C\n", err)
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		log.Printf("D\n", err)
+		log.Printf("WaitUntilReady: D\n", err)
 		exitCode, err := target.Exec(ctx, []string{"/bin/sh", "-c", command})
 		if err != nil {
 			return errors.Wrapf(err, "host port waiting failed")
 		}
-		log.Printf("E\n", err)
+		log.Printf("WaitUntilReady: E\n", err)
 
 		if exitCode == 0 {
 			break
 		} else if exitCode == 126 {
 			return errors.New("/bin/sh command not executable")
 		}
-		log.Printf("F\n", err)
+		log.Printf("WaitUntilReady: F\n", err)
 	}
 
 	return nil

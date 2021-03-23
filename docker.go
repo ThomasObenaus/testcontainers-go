@@ -747,28 +747,37 @@ func (p *DockerProvider) RunContainer(ctx context.Context, req ContainerRequest)
 // Warning: this is based on your Docker host setting. Will fail if using an SSH tunnel
 // You can use the "TC_HOST" env variable to set this yourself
 func (p *DockerProvider) daemonHost(ctx context.Context) (string, error) {
+
 	if p.hostCache != "" {
+		log.Printf("daemonHost: p.hostCache %#v\n", p.hostCache)
 		return p.hostCache, nil
 	}
 
 	host, exists := os.LookupEnv("TC_HOST")
 	if exists {
 		p.hostCache = host
+		log.Printf("daemonHost: host ENV %#v\n", p.hostCache)
 		return p.hostCache, nil
 	}
 
 	// infer from Docker host
 	url, err := url.Parse(p.client.DaemonHost())
+	log.Printf("daemonHost: DaemonHost %#v - %v\n", url, err)
 	if err != nil {
 		return "", err
 	}
 
 	switch url.Scheme {
 	case "http", "https", "tcp":
+		log.Printf("daemonHost: case 1 http %#v\n", url.Hostname())
+
 		p.hostCache = url.Hostname()
 	case "unix", "npipe":
+		log.Printf("daemonHost: case 2 unix\n")
 		if inAContainer() {
+			log.Printf("daemonHost: case 2 in a container\n")
 			ip, err := p.GetGatewayIP(ctx)
+			log.Printf("daemonHost: case 2 in a container, ip %#v\n", ip)
 			if err != nil {
 				// fallback to getDefaultGatewayIP
 				ip, err = getDefaultGatewayIP()
@@ -784,6 +793,7 @@ func (p *DockerProvider) daemonHost(ctx context.Context) (string, error) {
 		return "", errors.New("Could not determine host through env or docker host")
 	}
 
+	log.Printf("daemonHost: main path %#v\n", p.hostCache)
 	return p.hostCache, nil
 }
 
@@ -845,9 +855,11 @@ func (p *DockerProvider) CreateNetwork(ctx context.Context, req NetworkRequest) 
 
 // GetNetwork returns the object representing the network identified by its name
 func (p *DockerProvider) GetNetwork(ctx context.Context, req NetworkRequest) (types.NetworkResource, error) {
+	log.Printf("GetNetwork: START ctx %#v req %#v\n", ctx, req)
 	networkResource, err := p.client.NetworkInspect(ctx, req.Name, types.NetworkInspectOptions{
 		Verbose: true,
 	})
+	log.Printf("GetNetwork: DONE networkResource %#v - %v\n", networkResource, err)
 	if err != nil {
 		return types.NetworkResource{}, err
 	}
@@ -857,13 +869,16 @@ func (p *DockerProvider) GetNetwork(ctx context.Context, req NetworkRequest) (ty
 
 func (p *DockerProvider) GetGatewayIP(ctx context.Context) (string, error) {
 	// Use a default network as defined in the DockerProvider
+	log.Printf("GetGatewayIP: START %#v\n", ctx)
 	nw, err := p.GetNetwork(ctx, NetworkRequest{Name: p.defaultNetwork})
+	log.Printf("GetGatewayIP: DONE nw: %#v - %v\n", nw, err)
 	if err != nil {
 		return "", err
 	}
 
 	var ip string
 	for _, config := range nw.IPAM.Config {
+		log.Printf("GetGatewayIP: loop %#v\n", config)
 		if config.Gateway != "" {
 			ip = config.Gateway
 			break
