@@ -867,7 +867,28 @@ func (p *DockerProvider) GetNetwork(ctx context.Context, req NetworkRequest) (ty
 	return networkResource, err
 }
 
+func getGatewayIpOld() (string, error) {
+	// see https://github.com/testcontainers/testcontainers-java/blob/3ad8d80e2484864e554744a4800a81f6b7982168/core/src/main/java/org/testcontainers/dockerclient/DockerClientConfigUtils.java#L27
+	cmd := exec.Command("sh", "-c", "ip route|awk '/default/ { print $3 }'")
+	stdout, err := cmd.Output()
+	if err != nil {
+		return "", errors.New("Failed to detect docker host")
+	}
+	ip := strings.TrimSpace(string(stdout))
+	if len(ip) == 0 {
+		return "", errors.New("Failed to parse default gateway IP")
+	}
+	return string(ip), nil
+}
+
 func (p *DockerProvider) GetGatewayIP(ctx context.Context) (string, error) {
+
+	ip, err := getGatewayIpOld()
+	log.Printf("GetGatewayIP: getGatewayIpOld %#v - %v\n", ip, err)
+	if err != nil {
+		return "", err
+	}
+
 	// Use a default network as defined in the DockerProvider
 	log.Printf("GetGatewayIP: START %#v\n", ctx)
 	nw, err := p.GetNetwork(ctx, NetworkRequest{Name: p.defaultNetwork})
